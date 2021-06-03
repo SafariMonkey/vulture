@@ -55,6 +55,7 @@ ERROR_CODES = {
     "method": "V105",
     "property": "V106",
     "variable": "V107",
+    "parameter": "V108",
     "unreachable_code": "V201",
 }
 
@@ -217,6 +218,7 @@ class Vulture(ast.NodeVisitor):
         self.defined_methods = get_list("method")
         self.defined_props = get_list("property")
         self.defined_vars = get_list("variable")
+        self.defined_params = get_list("parameter")
         self.unreachable_code = get_list("unreachable_code")
 
         self.used_attrs = get_set("attribute")
@@ -323,6 +325,7 @@ class Vulture(ast.NodeVisitor):
             + self.unused_methods
             + self.unused_props
             + self.unused_vars
+            + self.unused_params
             + self.unreachable_code
         )
 
@@ -381,6 +384,12 @@ class Vulture(ast.NodeVisitor):
     def unused_vars(self):
         return _get_unused_items(
             self.defined_vars, self.used_attrs | self.used_names
+        )
+
+    @property
+    def unused_params(self):
+        return _get_unused_items(
+            self.defined_params, self.used_attrs | self.used_names
         )
 
     @property
@@ -532,13 +541,22 @@ class Vulture(ast.NodeVisitor):
             ignore=_ignore_variable,
         )
 
+    def _define_param(self, name, node, confidence=DEFAULT_CONFIDENCE):
+        self._define(
+            self.defined_params,
+            name,
+            node,
+            confidence=confidence,
+            ignore=_ignore_variable,
+        )
+
     def visit_arg(self, node):
         """Function argument.
 
         ast.arg was added in Python 3.0.
         ast.arg.lineno was added in Python 3.4.
         """
-        self._define_variable(node.arg, node, confidence=100)
+        self._define_param(node.arg, node, confidence=100)
 
     def visit_AsyncFunctionDef(self, node):
         return self.visit_FunctionDef(node)
@@ -635,8 +653,10 @@ class Vulture(ast.NodeVisitor):
             and node.id not in IGNORED_VARIABLE_NAMES
         ):
             self.used_names.add(node.id)
-        elif isinstance(node.ctx, (ast.Param, ast.Store)):
+        elif isinstance(node.ctx, (ast.Store)):
             self._define_variable(node.id, node)
+        elif isinstance(node.ctx, (ast.Param)):
+            self._define_param(node.id, node)
 
     if sys.version_info < (3, 8):
 

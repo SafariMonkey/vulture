@@ -572,7 +572,7 @@ class Vulture(ast.NodeVisitor):
         ]
 
         first_arg = None
-        if node.args.args:
+        if node.args.args and not isinstance(node.args.args[0], ast.Tuple):
             try:
                 first_arg = node.args.args[0].arg
             except AttributeError:

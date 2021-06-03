@@ -739,6 +739,7 @@ def _parse_args():
         "--exclude",
         metavar="PATTERNS",
         type=csv,
+        action="append",
         help="Comma-separated list of paths to ignore (e.g.,"
         ' "*settings.py,docs/*.py"). {glob_help} A PATTERN without glob'
         " wildcards is treated as *PATTERN*.".format(**locals()),
@@ -747,6 +748,7 @@ def _parse_args():
         "--ignore-decorators",
         metavar="PATTERNS",
         type=csv,
+        action="append",
         help="Comma-separated list of decorators. Functions and classes using"
         ' these decorators are ignored (e.g., "@app.route,@require_*").'
         " {glob_help}".format(**locals()),
@@ -755,6 +757,7 @@ def _parse_args():
         "--ignore-names",
         metavar="PATTERNS",
         type=csv,
+        action="append",
         default=None,
         help='Comma-separated list of names to ignore (e.g., "visit_*,do_*").'
         " {glob_help}".format(**locals()),
@@ -782,14 +785,19 @@ def _parse_args():
     return parser.parse_args()
 
 
+def _flatten(list):
+    if list:
+        return [item for sublist in list for item in sublist]
+
+
 def main():
     args = _parse_args()
     vulture = Vulture(
         verbose=args.verbose,
-        ignore_names=args.ignore_names,
-        ignore_decorators=args.ignore_decorators,
+        ignore_names=_flatten(args.ignore_names),
+        ignore_decorators=_flatten(args.ignore_decorators),
     )
-    vulture.scavenge(args.paths, exclude=args.exclude)
+    vulture.scavenge(args.paths, exclude=_flatten(args.exclude))
     sys.exit(
         vulture.report(
             min_confidence=args.min_confidence,
